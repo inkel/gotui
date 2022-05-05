@@ -12,15 +12,15 @@ import (
 type Model struct {
 	Styles Styles
 	KeyMap KeyMap
-	titles []string
+	tabs   []Tab
 	cur    int
 }
 
 // New returns a Model with the given titles as tabs, using default
 // styles and keymaps.
-func New(titles ...string) Model {
+func New(tabs ...Tab) Model {
 	return Model{
-		titles: titles,
+		tabs: tabs,
 		Styles: Styles{
 			Normal: DefaultTabStyle,
 			Active: DefaultActiveTabStyle,
@@ -52,46 +52,55 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 // View renders the models' view.
 func (m Model) View() string {
-	tabs := make([]string, len(m.titles))
+	tabs := make([]string, len(m.tabs))
 
-	for i, title := range m.titles {
+	for i, t := range m.tabs {
 		style := m.Styles.Normal
 		if i == m.cur {
 			style = m.Styles.Active
 		}
-		tabs[i] = style.Render(title)
+		tabs[i] = style.Render(t.Title())
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...)
 }
 
 // Selected returns the currently selected tab.
-func (m Model) Selected() string {
-	return m.titles[m.cur]
+func (m Model) Selected() Tab {
+	return m.tabs[m.cur]
 }
 
 // Next selects the next tab, wrapping back to the first one if at the
 // last one.
 func (m *Model) Next() {
-	m.cur = (m.cur + 1) % len(m.titles)
+	m.cur = (m.cur + 1) % len(m.tabs)
 }
 
 // Prev selectes the previous tab, wrapping forward to the last one if
 // at the first one.
 func (m *Model) Prev() {
 	if m.cur == 0 {
-		m.cur = len(m.titles) - 1
+		m.cur = len(m.tabs) - 1
 	} else {
-		m.cur = (m.cur - 1) % len(m.titles)
+		m.cur = (m.cur - 1) % len(m.tabs)
 	}
 }
 
 // TabSelectedMsg indicates a new tab was selected.
-type TabSelectedMsg string
+type TabSelectedMsg Tab
 
 // TabSelected is the command used to broadcast the selected tab.
 func (m Model) TabSelected() tea.Cmd {
 	return func() tea.Msg {
 		return TabSelectedMsg(m.Selected())
 	}
+}
+
+// Tab is the interface used to create tabs.
+type Tab interface {
+	// Title is the text used to render the tab.
+	Title() string
+
+	// Data contains data associated with the tab.
+	Data() interface{}
 }
